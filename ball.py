@@ -1,18 +1,32 @@
 import pygame
+import math
 
 class ball(pygame.sprite.Sprite):
     def __init__ (self,vector):
-        pygame.sprite.Sprite. __init__(self)
-        self.image, self.rect = load_png('ball.png')
-        screen = pygame.display.get_surface()
-        self.area = screen.get_rect()
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.image.load('ball2.png')
+        self.screen = pygame.display.get_surface()
+        self.area = self.screen.get_rect()
         self.vector = vector
+        self.x = 0
+        self.y = 0
+        self.dx = 0
+        self.dy = 1
+
 
     def update(self):
-        newpos = self.calcnewpos(self.rect,self.vector)
-        self.rect = newpos
+        if self.image.get_rect().height + self.y > self.screen.get_height():
+            self.dy *= -.8
+            self.y = self.screen.get_height() - self.image.get_rect().height
+        self.dy += 1 
 
-    def calcnewpos(self,rect,vector):
+        self.x += self.dx
+        self.y += self.dy        
+
+    def calcnewpos(self,vector):
         (angle,z) = vector
         (dx,dy) = (z*math.cos(angle),z*math.sin(angle))
-        return rect.move(dx,dy)
+
+    def move(self):
+        self.update()
+        self.screen.blit(self.image, (self.x, self.y))
