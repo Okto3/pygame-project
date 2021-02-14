@@ -12,6 +12,7 @@ class ball(pygame.sprite.Sprite):
         self.y = 0
         self.dx = 0
         self.dy = 1
+        self.mask = pygame.mask.from_surface(self.image)
 
 
     def update(self):
