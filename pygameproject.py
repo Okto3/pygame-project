@@ -18,8 +18,9 @@ myfont = pygame.font.SysFont('ArialBold', 30)
 myVector = pymunk.Vec2d(10, 10)
 myBall = ball(myVector)
 myPlatform = platform()
-
-
+thingsTheBallCanHit = pygame.sprite.Group()
+thingsTheBallCanHit.add(myPlatform)
+count = 0
 
 Exit = False
 clock = pygame.time.Clock()
@@ -33,6 +34,11 @@ while not Exit:
     timer = int(pygame.time.get_ticks()/1000)
     timer = str(timer)
     clock.tick(60)
+
+    
+    if pygame.sprite.spritecollide(myBall, thingsTheBallCanHit, False):
+        count += 1
+        print(count)
 
 
     myPlatform.drawrect()
