@@ -21,6 +21,8 @@ myPlatform = platform()
 thingsTheBallCanHit = pygame.sprite.Group()
 thingsTheBallCanHit.add(myPlatform)
 count = 0
+#space = pymunk.Space()
+#space.gravity(0,500)
 
 Exit = False
 clock = pygame.time.Clock()
@@ -34,6 +36,7 @@ while not Exit:
     timer = int(pygame.time.get_ticks()/1000)
     timer = str(timer)
     clock.tick(60)
+    #space.step(1/50)
 
     
     if pygame.sprite.spritecollide(myBall, thingsTheBallCanHit, False):
