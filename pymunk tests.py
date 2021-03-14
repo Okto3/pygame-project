@@ -25,13 +25,10 @@ class BouncingBalls(object):
         self.running = True
         self.ticks_to_next_ball = 10
         self.active_shape = None
-        self.lineID
         self.dragging = False
-        self.activePlatform = 0
         self.rotating = False
-        self.lineAngle = math.pi/2
+        self.platformRotations = []   
 
-        
         
         
 
@@ -50,24 +47,14 @@ class BouncingBalls(object):
                 self.offset_y = 0
                 self.x = 0
                 self.y = 0
-                
-                
+         
 
     def add_static_scenery(self) -> None:
-        static_body = self.space.static_body
-
+        
         self.linePoint1X = 0
         self.linePoint1Y = 0
         self.linePoint2X = 100
         self.linePoint2Y = 0
-
-        self.platformLine = pymunk.Segment(static_body, (self.linePoint1X, self.linePoint1Y), (self.linePoint2X, self.linePoint2Y), 7.0)
-        self.platformLine.elasticity = 1
-        self.platformLine.friction = 0.9
-        
-        self.space.add(self.platformLine)
-        self.lineID = self.space.shapes[0]._id
-
 
     def process_events(self) -> None:
         for event in pygame.event.get():
@@ -78,58 +65,68 @@ class BouncingBalls(object):
                 
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                #self.dragging = True
                 self.mouse_x, self.mouse_y = event.pos
                 p = from_pygame(event.pos, self.screen)
                 self.active_shape = None
                 for s in self.space.shapes:
-                    if s._id == self.lineID:
-                        
-                        dist = s.point_query(p)
-                        if dist.distance < 0:
-                            self.active_shape = s
-                            #print(event.pos)
-                            self.dragging = True
-                            self.activePlatform = self.active_shape._id
+                    dist = s.point_query(p)
+                    if dist.distance < 0:
+                        self.active_shape = s
+                        self.dragging = True
 
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT:
                     if self.active_shape:
-                        self.lineAngle += 0.2
+                        self.active_shape.rotation += 0.2
+                        self.rotatePlatform()
 
                 if event.key == pygame.K_RIGHT:
                     if self.active_shape:
-                        self.lineAngle -= 0.2
+                        self.active_shape.rotation -= 0.2
 
-                self.rotatePlatform()
+                        self.rotatePlatform()
+
+                if event.key == pygame.K_n:
+                    self.create_Platform()
                                                     
             
             elif event.type == pygame.MOUSEMOTION:
                 if self.dragging == True:
                     self.mouse_x, self.mouse_y = event.pos
-                    self.space.remove(self.platformLine)
-                    self.platformLine.body.position = (self.mouse_x + self.offset_x,self.mouse_y + self.offset_y)
-                    self.space.add(self.platformLine)
-                    self.lineID = self.space.shapes[0]._id
+                    self.space.remove(self.active_shape)
+                    self.active_shape.body.position = (self.mouse_x + self.offset_x,self.mouse_y + self.offset_y)
+                    self.space.add(self.active_shape)
             elif event.type == pygame.MOUSEBUTTONUP:
                 self.dragging = False
 
 
+    def create_Platform (self) -> None:
+        static_body = self.space.static_body
+        platformLine = pymunk.Segment(static_body, (self.linePoint1X, self.linePoint1Y), (self.linePoint2X, self.linePoint2Y), 7.0)
+        platformLine.elasticity = 1
+        platformLine.friction = 0.9
+        platformLine.rotation = math.pi/2 # I MADE UP THIS ROTATION VARIABLE AND ASSIGNED IT TO PLATFORM LINE.
+
+        self.space.add(platformLine)
+
+
     def rotatePlatform (self) -> None:
         
-        xc = (self.platformLine.a.x + self.platformLine.b.x) / 2
-        yc = (self.platformLine.a.y + self.platformLine.b.y) / 2
-        xa = xc - math.sin(self.lineAngle)*50
-        ya = yc - math.cos(self.lineAngle)*50
-        xb = xc + math.sin(self.lineAngle)*50
-        yb = yc + math.cos(self.lineAngle)*50
+        xc = (self.active_shape.a.x + self.active_shape.b.x) / 2
+        yc = (self.active_shape.a.y + self.active_shape.b.y) / 2
+        xa = xc - math.sin(self.active_shape.rotation)*50
+        ya = yc - math.cos(self.active_shape.rotation)*50
+        xb = xc + math.sin(self.active_shape.rotation)*50
+        yb = yc + math.cos(self.active_shape.rotation)*50
         
-        self.space.remove(self.platformLine)
-        self.platformLine = pymunk.Segment(self.space.static_body, (xa, ya), (xb, yb), 7.0)
-        self.space.add(self.platformLine)
-        self.lineID = self.space.shapes[0]._id
-        self.platformLine.elasticity = .9
-        self.platformLine.friction = 0.9
+        r = self.active_shape.rotation
+
+        self.space.remove(self.active_shape)
+        self.active_shape = pymunk.Segment(self.space.static_body, (xa, ya), (xb, yb), 7.0)
+        self.active_shape.rotation = r
+        self.space.add(self.active_shape)
+        self.active_shape.elasticity = .9
+        self.active_shape.friction = 0.9
 
 
     def update_balls(self) -> None:            
@@ -149,11 +146,11 @@ class BouncingBalls(object):
         body = pymunk.Body(mass, inertia)
         body.position = 100, 100
         shape = pymunk.Circle(body, radius, (0, 0))
-        shape.elasticity = 1
+        shape.elasticity = .99
         shape.friction = 0.9
         self.space.add(body, shape)
         self.balls.append(shape)
-
+       
 
     def clear_screen(self) -> None:
         self.screen.fill(pygame.Color("white"))
@@ -161,11 +158,6 @@ class BouncingBalls(object):
     def draw_objects(self) -> None:
         self.space.debug_draw(self.draw_options)
 
-        if self.active_shape != None:
-            s = self.active_shape
-            r = int(s.radius)
-            p = to_pygame(s.a, self.screen)
-            pygame.draw.circle(self.screen, (255,0,0), p, r, 3)
 
         
 if __name__ == "__main__":
