@@ -8,9 +8,11 @@ from pygame.locals import *
 import math
 
 
+
 class BouncingBalls(object):
     def __init__(self) -> None:
         self.space = pymunk.Space() 
+        self.binSpace = pymunk.Space()
         self.space.gravity = (0.0, 900.0)
         self.dt = 1.0 / 60.0 
         self.physics_steps_per_frame = 1
@@ -28,6 +30,10 @@ class BouncingBalls(object):
         self.dragging = False
         self.rotating = False
         self.platformRotations = []   
+        #self.create_bin()
+        self.binLeft = pymunk.Segment(self.space.static_body,(500,500),(500,400),1.0)
+        self.binRight = pymunk.Segment(self.space.static_body,(600,500),(600,400),1.0)
+        self.space.add(self.binLeft,self.binRight)
 
         
         
@@ -41,6 +47,7 @@ class BouncingBalls(object):
                 self.update_balls()
                 self.clear_screen()
                 self.draw_objects()
+                
                 pygame.display.flip()
                 self.clock.tick(50)
                 self.offset_x = 0
@@ -51,10 +58,11 @@ class BouncingBalls(object):
 
     def add_static_scenery(self) -> None:
         
-        self.linePoint1X = 0
-        self.linePoint1Y = 0
-        self.linePoint2X = 100
-        self.linePoint2Y = 0
+        self.linePoint1X = 50
+        self.linePoint1Y = 100
+        self.linePoint2X = 150
+        self.linePoint2Y = 100
+        
 
     def process_events(self) -> None:
         for event in pygame.event.get():
@@ -63,16 +71,16 @@ class BouncingBalls(object):
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 self.running = False
                 
-
+            
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 self.mouse_x, self.mouse_y = event.pos
-                p = from_pygame(event.pos, self.screen)
-                self.active_shape = None
-                for s in self.space.shapes:
-                    dist = s.point_query(p)
-                    if dist.distance < 0:
-                        self.active_shape = s
+                shape = self.space.point_query_nearest(event.pos, float("inf"), pymunk.ShapeFilter()).shape
+                if shape is not None and isinstance(shape, pymunk.Segment):
+                    if shape != self.binLeft or shape != self.binRight:
+                        self.active_shape = shape
                         self.dragging = True
+                        self.mouseMotion(event)
+                        #print(self.active_shape)
 
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT:
@@ -83,7 +91,6 @@ class BouncingBalls(object):
                 if event.key == pygame.K_RIGHT:
                     if self.active_shape:
                         self.active_shape.rotation -= 0.2
-
                         self.rotatePlatform()
 
                 if event.key == pygame.K_n:
@@ -92,18 +99,23 @@ class BouncingBalls(object):
             
             elif event.type == pygame.MOUSEMOTION:
                 if self.dragging == True:
-                    self.mouse_x, self.mouse_y = event.pos
-                    self.space.remove(self.active_shape)
-                    self.active_shape.body.position = (self.mouse_x + self.offset_x,self.mouse_y + self.offset_y)
-                    self.space.add(self.active_shape)
+                    self.mouseMotion(event)    
             elif event.type == pygame.MOUSEBUTTONUP:
                 self.dragging = False
+
+
+        
+    def mouseMotion (self, event) -> None:
+        self.mouse_x, self.mouse_y = event.pos
+        self.space.remove(self.active_shape)
+        self.active_shape.body.position = (self.mouse_x + self.offset_x - self.linePoint1X,self.mouse_y + self.offset_y - self.linePoint1Y)
+        self.space.add(self.active_shape)
 
 
     def create_Platform (self) -> None:
         static_body = self.space.static_body
         platformLine = pymunk.Segment(static_body, (self.linePoint1X, self.linePoint1Y), (self.linePoint2X, self.linePoint2Y), 7.0)
-        platformLine.elasticity = 1
+        platformLine.elasticity = .9
         platformLine.friction = 0.9
         platformLine.rotation = math.pi/2 # I MADE UP THIS ROTATION VARIABLE AND ASSIGNED IT TO PLATFORM LINE.
 
@@ -132,9 +144,10 @@ class BouncingBalls(object):
     def update_balls(self) -> None:            
         keys = pygame.key.get_pressed()
         if keys[pygame.K_SPACE]:
-                self.create_ball()
+            self.create_ball()
+
             
-        balls_to_remove = [ball for ball in self.balls if ball.body.position.y > 500]
+        balls_to_remove = [ball for ball in self.balls if ball.body.position.y > 700]
         for ball in balls_to_remove:
             self.space.remove(ball, ball.body)
             self.balls.remove(ball)
@@ -150,6 +163,18 @@ class BouncingBalls(object):
         shape.friction = 0.9
         self.space.add(body, shape)
         self.balls.append(shape)
+
+    #def create_bin (self) -> None:
+        #static_bodies_bin = self.space.static_body
+        #self.bin_lines = [
+        
+
+        #]
+        #for line in bin_lines:
+        #    line.elasticity = 0.95
+        #    line.friction = 0.9
+        
+        #print('yes')
        
 
     def clear_screen(self) -> None:
@@ -161,6 +186,5 @@ class BouncingBalls(object):
 
         
 if __name__ == "__main__":
-    
     game = BouncingBalls()
     game.run()
