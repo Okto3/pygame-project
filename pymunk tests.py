@@ -21,19 +21,26 @@ class BouncingBalls(object):
         self.screen = pygame.display.set_mode((1024, 600))
         self.clock = pygame.time.Clock()
         self.draw_options = pymunk.pygame_util.DrawOptions(self.screen)
-        self.add_static_scenery()
         self.balls: List[pymunk.Circle] = []
-        self.selected_shapes = []
         self.running = True
-        self.ticks_to_next_ball = 10
         self.active_shape = None
         self.dragging = False
-        self.rotating = False
-        self.platformRotations = []   
-        #self.create_bin()
-        self.binLeft = pymunk.Segment(self.space.static_body,(500,500),(500,400),1.0)
-        self.binRight = pymunk.Segment(self.space.static_body,(600,500),(600,400),1.0)
-        self.space.add(self.binLeft,self.binRight)
+
+        self.binLeft = pymunk.Segment(self.space.static_body,(790,500),(800,600),2.0)
+        self.binRight = pymunk.Segment(self.space.static_body,(870,500),(860,600),2.0)
+        self.binBottom = pymunk.Segment(self.space.static_body,(800,600),(860,600),2.0)
+        self.binBottom.collision_type = 2
+
+        self.binList = [self.binLeft, self.binRight,self.binBottom]
+        for lines in self.binList:
+            lines.elasticity = .9
+            lines.friction = 10
+            lines.color = pygame.Color(0,0,0)
+
+        self.space.add(self.binLeft,self.binRight,self.binBottom)
+
+        collInfo = self.space.add_collision_handler(1, 2)
+        collInfo.begin = self.caughtTheBall
 
         
         
@@ -54,15 +61,12 @@ class BouncingBalls(object):
                 self.offset_y = 0
                 self.x = 0
                 self.y = 0
-         
 
-    def add_static_scenery(self) -> None:
-        
-        self.linePoint1X = 50
-        self.linePoint1Y = 100
-        self.linePoint2X = 150
-        self.linePoint2Y = 100
-        
+                self.linePoint1X = 50
+                self.linePoint1Y = 100
+                self.linePoint2X = 150
+                self.linePoint2Y = 100
+       
 
     def process_events(self) -> None:
         for event in pygame.event.get():
@@ -75,12 +79,10 @@ class BouncingBalls(object):
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 self.mouse_x, self.mouse_y = event.pos
                 shape = self.space.point_query_nearest(event.pos, float("inf"), pymunk.ShapeFilter()).shape
-                if shape is not None and isinstance(shape, pymunk.Segment):
-                    if shape != self.binLeft or shape != self.binRight:
-                        self.active_shape = shape
-                        self.dragging = True
-                        self.mouseMotion(event)
-                        #print(self.active_shape)
+                if shape is not None and isinstance(shape, pymunk.Segment) and shape not in self.binList:
+                    self.active_shape = shape
+                    self.dragging = True
+                    self.mouseMotion(event)
 
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT:
@@ -103,6 +105,11 @@ class BouncingBalls(object):
             elif event.type == pygame.MOUSEBUTTONUP:
                 self.dragging = False
 
+            
+           # print(self.space.add_collision_handler(self.binBottom, shape))
+            #for ball in self.balls:
+                #if self.space.add_collision_handler(self.binBottom, ball):
+                   # print('yes')
 
         
     def mouseMotion (self, event) -> None:
@@ -110,17 +117,17 @@ class BouncingBalls(object):
         self.space.remove(self.active_shape)
         self.active_shape.body.position = (self.mouse_x + self.offset_x - self.linePoint1X,self.mouse_y + self.offset_y - self.linePoint1Y)
         self.space.add(self.active_shape)
+        
 
 
     def create_Platform (self) -> None:
         static_body = self.space.static_body
-        platformLine = pymunk.Segment(static_body, (self.linePoint1X, self.linePoint1Y), (self.linePoint2X, self.linePoint2Y), 7.0)
-        platformLine.elasticity = .9
-        platformLine.friction = 0.9
-        platformLine.rotation = math.pi/2 # I MADE UP THIS ROTATION VARIABLE AND ASSIGNED IT TO PLATFORM LINE.
-
-        self.space.add(platformLine)
-
+        self.platformLine = pymunk.Segment(static_body, (self.linePoint1X, self.linePoint1Y), (self.linePoint2X, self.linePoint2Y), 7.0)
+        self.platformLine.elasticity = .99
+        self.platformLine.friction = 0.9
+        self.platformLine.color = pygame.Color(0,0,0)
+        self.platformLine.rotation = math.pi/2 # I MADE UP THIS ROTATION VARIABLE AND ASSIGNED IT TO PLATFORM LINE.
+        self.space.add(self.platformLine)
 
     def rotatePlatform (self) -> None:
         
@@ -136,8 +143,9 @@ class BouncingBalls(object):
         self.space.remove(self.active_shape)
         self.active_shape = pymunk.Segment(self.space.static_body, (xa, ya), (xb, yb), 7.0)
         self.active_shape.rotation = r
+        self.active_shape.color = pygame.Color(0,0,0) 
         self.space.add(self.active_shape)
-        self.active_shape.elasticity = .9
+        self.active_shape.elasticity = .99
         self.active_shape.friction = 0.9
 
 
@@ -158,28 +166,23 @@ class BouncingBalls(object):
         inertia = pymunk.moment_for_circle(mass, 0, radius, (0, 0))
         body = pymunk.Body(mass, inertia)
         body.position = 100, 100
-        shape = pymunk.Circle(body, radius, (0, 0))
-        shape.elasticity = .99
-        shape.friction = 0.9
-        self.space.add(body, shape)
-        self.balls.append(shape)
+        self.circle = pymunk.Circle(body, radius, (0, 0))
+        self.circle.elasticity = .9
+        self.circle.friction = 0.9
+        self.space.add(body, self.circle)
+        self.balls.append(self.circle)
+        self.circle.collision_type = 1
 
-    #def create_bin (self) -> None:
-        #static_bodies_bin = self.space.static_body
-        #self.bin_lines = [
-        
 
-        #]
-        #for line in bin_lines:
-        #    line.elasticity = 0.95
-        #    line.friction = 0.9
-        
-        #print('yes')
-       
+    def caughtTheBall(self, space, arbiter, data):
+        s1 = arbiter.shapes
+        print('colission detected')
+
+        return True
 
     def clear_screen(self) -> None:
-        self.screen.fill(pygame.Color("white"))
-
+        background = pygame.image.load('background.png')
+        self.screen.blit(background,(0,0))
     def draw_objects(self) -> None:
         self.space.debug_draw(self.draw_options)
 
