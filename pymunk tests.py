@@ -29,6 +29,7 @@ class BouncingBalls(object):
         #self.inMainMenu = True
         self.gameState = 0 #0 main menu, 1 is level select, 2 is instruction, 3 is in a game
         self.binList = []
+        self.dropperList = []
         
 
         
@@ -42,6 +43,17 @@ class BouncingBalls(object):
             self.startImage = pygame.image.load('start.png')
             self.settingsImage = pygame.image.load('settings.png')
             self.quitImage = pygame.image.load('Quite.png')
+
+            self.level1Image = pygame.image.load('Level1.png')
+            self.level2Image = pygame.image.load('Level2.png')
+            self.level3Image = pygame.image.load('Level3.png')
+            self.level4Image = pygame.image.load('Level4.png')
+            self.level5Image = pygame.image.load('Level5.png')
+
+            self.backImage = pygame.image.load('back.png')
+            self.newPlatformImage = pygame.image.load('newPlatform.png')
+            self.binImage = pygame.image.load('bin.png')
+            self.ballDropImage = pygame.image.load('ballDrop.png')
             #startRect = startImage.get_rect()
 
             while self.running:
@@ -78,11 +90,49 @@ class BouncingBalls(object):
                     self.settingsButton.move_ip(445,401)
                     self.quitButton.move_ip(590,401)
 
+                if self.gameState == 1:
+
+                    self.screen.blit(self.level1Image, (195,100))
+                    self.screen.blit(self.level2Image, (325,100))
+                    self.screen.blit(self.level3Image, (460,100))
+                    self.screen.blit(self.level4Image, (590,100))
+                    self.screen.blit(self.level5Image, (720,100))
+
+                    self.level1Button = self.level1Image.get_rect()
+                    self.level2Button = self.level2Image.get_rect()
+                    self.level3Button = self.level3Image.get_rect()
+                    self.level4Button = self.level4Image.get_rect()
+                    self.level5Button = self.level5Image.get_rect()
+
+                    self.level1Button.move_ip(195,100)
+
+                    self.screen.blit(self.backImage, (900,500))
+                    self.backButton = self.backImage.get_rect()
+                    self.backButton.move_ip(900,500)
+
+                if self.gameState == 3:
+
+                    self.screen.blit(self.newPlatformImage, (950,25))
+                    self.newPlatformButton = self.newPlatformImage.get_rect()
+                    self.newPlatformButton.move_ip(950,25)
+
+                    self.screen.blit(self.backImage, (925,500))
+                    self.backButton = self.backImage.get_rect()
+                    self.backButton.move_ip(925,500)
+
+                    self.screen.blit(self.binImage, (960,100))
+                    self.binButton = self.binImage.get_rect()
+                    self.binButton.move_ip(950,100)
+
+                    self.screen.blit(self.ballDropImage,(950,175))
+                    self.ballDropButton = self.backImage.get_rect()
+                    self.ballDropButton.move_ip(950,200)
+
                     #self.startButton.draw(self.screen)
                     #self.settingsButton.draw(self.screen)
                     #self.quitButton.draw(self.screen)
                     
-                    #pygame.draw.rect(self.screen,(0,0,0),self.startButton)
+                    #pygame.draw.rect(self.screen,(0,0,0),self.level1Button)
 
                     pygame.display.flip()
                 pygame.display.flip()
@@ -96,23 +146,42 @@ class BouncingBalls(object):
             
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if self.gameState == 3:
+                    if self.newPlatformButton.collidepoint(pygame.mouse.get_pos()):
+                        self.create_Platform()
+                    elif self.backButton.collidepoint(pygame.mouse.get_pos()):
+                        self.gameState = 1
+                    elif self.binButton.collidepoint(pygame.mouse.get_pos()):
+                        self.removePlatform()
+                    elif self.ballDropButton.collidepoint(pygame.mouse.get_pos()):
+                        #self.create_ball()
+                        self.space.remove(self.trapDoor)
+                        print(self.dropperList)
+                        
+
+
                     self.mouse_x, self.mouse_y = event.pos
                     nearestShape = self.space.point_query_nearest(event.pos, float("inf"), pymunk.ShapeFilter())
                     if nearestShape is not None:
                         shape = nearestShape.shape
-                        if shape is not None and isinstance(shape, pymunk.Segment) and shape not in self.binList:
+                        if shape is not None and isinstance(shape, pymunk.Segment) and shape not in self.binList and shape not in self.dropperList:
                             self.active_shape = shape
                             self.dragging = True
                             self.mouseMotion(event)
-                if self.gameState == 0:
+                          
+                elif self.gameState == 0:
                     if self.startButton.collidepoint(pygame.mouse.get_pos()):
-                        print('start')
-                        self.gameState = 3
-                        self.setUpLevel1()      #this will need to change
-                    if self.settingsButton.collidepoint(pygame.mouse.get_pos()):
-                        print('settings')
+                        self.gameState = 1   
+                    #if self.settingsButton.collidepoint(pygame.mouse.get_pos()):
                     if self.quitButton.collidepoint(pygame.mouse.get_pos()):
                         self.running = False
+
+                elif self.gameState == 1:
+                    if self.level1Button.collidepoint(pygame.mouse.get_pos()):
+                        self.gameState = 3
+                        self.setUpLevel1()
+                    if self.backButton.collidepoint(pygame.mouse.get_pos()):
+                        self.gameState = 0
+
 
             elif event.type == pygame.KEYDOWN:
                 if self.gameState == 3:
@@ -140,11 +209,10 @@ class BouncingBalls(object):
 
              
     def setUpLevel1 (self):
-        #if self.gameState == 3:
         self.binLeft = pymunk.Segment(self.space.static_body,(790,500),(800,600),2.0)
         self.binRight = pymunk.Segment(self.space.static_body,(870,500),(860,600),2.0)
         self.binBottom = pymunk.Segment(self.space.static_body,(800,600),(860,600),2.0)
-        self.binBottom.collision_type = 2
+        self.binBottom.collision_type = 2      
 
         self.binList = [self.binLeft, self.binRight,self.binBottom]
         for lines in self.binList:
@@ -152,10 +220,21 @@ class BouncingBalls(object):
             lines.friction = 10
             lines.color = pygame.Color(0,0,0)
 
-        self.space.add(self.binLeft,self.binRight,self.binBottom)
+        self.dropperLeft = pymunk.Segment(self.space.static_body,(50,0),(50,50),2.0)
+        self.dropperRight = pymunk.Segment(self.space.static_body,(110,0),(110,50),2.0)
+        self.trapDoor = pymunk.Segment(self.space.static_body,(50,55),(110,55),2.0)
+
+        self.dropperList = [self.dropperLeft, self.dropperRight, self.trapDoor]
+        for dropperline in self.dropperList:
+            dropperline.color = pygame.Color(0,0,0)
+
+        self.space.add(self.binLeft,self.binRight,self.binBottom, self.dropperLeft, self.dropperRight, self.trapDoor)
 
         collInfo = self.space.add_collision_handler(1, 2)
         collInfo.begin = self.caughtTheBall
+
+        self.create_ball()
+        
         
     def mouseMotion (self, event) -> None:
         self.mouse_x, self.mouse_y = event.pos
@@ -205,13 +284,16 @@ class BouncingBalls(object):
         for ball in balls_to_remove:
             self.space.remove(ball, ball.body)
             self.balls.remove(ball)
+            self.space.add(self.newtrapDoor)
+            self.create_ball()
+       
 
     def create_ball(self) -> None:
         mass = 10
         radius = 25
         inertia = pymunk.moment_for_circle(mass, 0, radius, (0, 0))
         body = pymunk.Body(mass, inertia)
-        body.position = 100, 100
+        body.position = 80, -50
         self.circle = pymunk.Circle(body, radius, (0, 0))
         self.circle.elasticity = .9
         self.circle.friction = 0.9
@@ -225,6 +307,9 @@ class BouncingBalls(object):
         print('colission detected')
 
         return True
+
+    def removePlatform(self):
+        self.space.remove(self.active_shape)
 
     def clear_screen(self) -> None:
         background = pygame.image.load('background.png')
