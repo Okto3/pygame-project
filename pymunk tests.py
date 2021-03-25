@@ -30,6 +30,7 @@ class BouncingBalls(object):
         self.gameState = 0 #0 main menu, 1 is level select, 2 is instruction, 3 is in a game
         self.binList = []
         self.dropperList = []
+        self.ballsToReset= []
         
 
         
@@ -155,7 +156,7 @@ class BouncingBalls(object):
                     elif self.ballDropButton.collidepoint(pygame.mouse.get_pos()):
                         #self.create_ball()
                         self.space.remove(self.trapDoor)
-                        print(self.dropperList)
+                        print(self.dropperList)  
                         
 
 
@@ -206,6 +207,14 @@ class BouncingBalls(object):
             elif event.type == pygame.MOUSEBUTTONUP:
                 if self.gameState == 3:
                     self.dragging = False
+        
+            #ballsToReset = [ball for ball in self.balls if ball.body.position.y > 600]
+            for ball in self.ballsToReset:
+                if ball.body.position.y < 600:
+                    print('yes')
+                #self.space.remove(ball, ball.body)
+                #self.balls.remove(ball)
+                
 
              
     def setUpLevel1 (self):
@@ -233,6 +242,10 @@ class BouncingBalls(object):
         collInfo = self.space.add_collision_handler(1, 2)
         collInfo.begin = self.caughtTheBall
 
+        self.create_ball()
+    
+    def resetBall (self):
+        self.space.add(self.trapDoor)
         self.create_ball()
         
         
@@ -284,8 +297,8 @@ class BouncingBalls(object):
         for ball in balls_to_remove:
             self.space.remove(ball, ball.body)
             self.balls.remove(ball)
-            self.space.add(self.newtrapDoor)
-            self.create_ball()
+            #self.space.add(self.trapDoor)
+            #self.create_ball()
        
 
     def create_ball(self) -> None:
@@ -299,6 +312,7 @@ class BouncingBalls(object):
         self.circle.friction = 0.9
         self.space.add(body, self.circle)
         self.balls.append(self.circle)
+        self.ballsToReset.append(self.circle)
         self.circle.collision_type = 1
 
 
