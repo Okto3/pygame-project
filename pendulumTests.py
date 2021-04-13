@@ -10,8 +10,8 @@ draw_options = pymunk.pygame_util.DrawOptions(screen)
 
 
 b0 = space.static_body 
-segment = pymunk.Segment(b0, (0, 600), (640, 600), 4)
-segment.elasticity = 1
+##segment = pymunk.Segment(b0, (0, 600), (640, 600), 4)
+#segment.elasticity = 1
 
 body = pymunk.Body(mass=1, moment=10)
 body.position = (100, 100)
@@ -24,7 +24,7 @@ circle2 = pymunk.Circle(body2, radius=20)
 joint = pymunk.constraints.PinJoint(b0, body, (200, 200))
 joint2 = pymunk.constraints.PinJoint(body2,body)
 
-space.add(body, circle, segment, joint,body2,joint2,circle2)
+space.add(body, circle, joint,body2,joint2,circle2)
 
 
 
@@ -35,8 +35,7 @@ while running:
             running = False
 
         if event.type == pygame.KEYDOWN:
-            print('yes')
-            space.remove(body,circle,segment,joint,body2,joint2,circle2)
+            space.remove(body,circle,joint,body2,joint2,circle2)
 
     screen.fill((255,255,255))
     space.debug_draw(draw_options)

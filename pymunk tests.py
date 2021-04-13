@@ -31,12 +31,7 @@ class BouncingBalls(object):
         self.platformList = []
         self.spikesList = []
         self.walls = []
-        self.pendulum1Objects = []
-        self.pendulumLists = []
-        self.gears = []
-        self.pendulumBalls = []
-        
-        self.pendulumStrings = []
+        self.pendulumObjects = []        
         
 
         
@@ -124,13 +119,14 @@ class BouncingBalls(object):
                     self.level2Button.move_ip(325,100)
                     self.level3Button.move_ip(460,100)
                     self.level4Button.move_ip(590,100)
+                    self.level5Button.move_ip(720,100)
 
                     self.screen.blit(self.backImage, (900,500))
                     self.backButton = self.backImage.get_rect()
                     self.backButton.move_ip(900,500)
 
 
-                if self.gameState == 3 or self.gameState == 5 or self.gameState == 7 or self.gameState == 9:
+                if self.gameState == 3 or self.gameState == 5 or self.gameState == 7 or self.gameState == 9 or self.gameState == 11:
 
                     self.screen.blit(self.newPlatformImage, (950,25))
                     self.newPlatformButton = self.newPlatformImage.get_rect()
@@ -197,11 +193,11 @@ class BouncingBalls(object):
                         
                 if self.gameState == 6:
                     if self.backButton.collidepoint(pygame.mouse.get_pos()):
-                            self.clearLevel()
-                            self.gameState = 1
-                            continue
+                        self.clearLevel()
+                        self.gameState = 1
+                        continue
 
-                if self.gameState == 3 or self.gameState == 5 or self.gameState == 7 or self.gameState == 9:
+                if self.gameState == 3 or self.gameState == 5 or self.gameState == 7 or self.gameState == 9 or self.gameState == 11:
                     if self.backButton.collidepoint(pygame.mouse.get_pos()):
                         self.clearLevel()
                         self.gameState = 1
@@ -221,7 +217,9 @@ class BouncingBalls(object):
                         nearestShape = self.space.point_query_nearest(event.pos, float("inf"), pymunk.ShapeFilter())
                         if nearestShape is not None:
                             shape = nearestShape.shape
-                            if shape is not None and isinstance(shape, pymunk.Segment) and shape not in self.binList and shape not in self.dropperList and shape not in self.spikesList and shape not in self.walls:  
+                            #if shape is not None and isinstance(shape, pymunk.Segment) and shape not in self.binList and shape not in self.dropperList and shape not in self.spikesList and shape not in self.walls and shape not in self.pendulumObjects:  
+                            if shape is not None and isinstance(shape, pymunk.Segment) and shape in self.platformList:  
+
                                 self.active_shape = shape
                                 self.dragging = True
                                 self.mouseMotion(event)
@@ -247,6 +245,9 @@ class BouncingBalls(object):
                     if self.level4Button.collidepoint(pygame.mouse.get_pos()):
                         self.gameState = 9
                         self.setUpLevel4()
+                    if self.level5Button.collidepoint(pygame.mouse.get_pos()):
+                        self.gameState = 11
+                        self.setUpLevel5()
                     
                     if self.backButton.collidepoint(pygame.mouse.get_pos()):
                         self.gameState = 0
@@ -335,41 +336,40 @@ class BouncingBalls(object):
 
     def setUpLevel4(self):
         self.setUpLevel1()
-        #stuff for double pendulum number 1 (over bin)
-        self.ball_1 = Ball(random.randint(750,850),150,self.space)
-        self.ball_2 = Ball(random.randint(750,850),50,self.space)
+        self.pendulum(200, 250, random.randint(150, 250), 150, random.randint(150, 250), 50)
+        self.pendulum(400, 250, random.randint(350, 450), 150, random.randint(350, 450), 50)
+        self.pendulum(600, 250, random.randint(550, 650), 150, random.randint(550, 650), 50)
+        self.pendulum(800, 250, random.randint(750, 850), 150, random.randint(750, 850), 50)
 
-        self.string1 = String(self.ball_1.body, (800, 250),self.space, "position")
-        self.string2 = String(self.ball_1.body, self.ball_2.body,self.space)
-        
-        #stuff for double pendulm number 2 (in the left)
-        self.ball_3 = Ball(random.randint(350,450),150,self.space)
-        self.ball_4 = Ball(random.randint(350,450),50,self.space)
+        attachment = pymunk.Segment(self.space.static_body,(150,250),(250,250),4)
+        self.space.add(attachment)
 
-        string3 = String(self.ball_3.body, (400, 250),self.space, "position")
-        string4 = String(self.ball_3.body, self.ball_4.body,self.space)
+    def setUpLevel5(self):
+        self.setUpLevel1()
 
-        #stuff for double pendulm number 3 (in the midle top)
-        self.ball_5 = Ball(random.randint(550,650),150,self.space)
-        self.ball_6 = Ball(random.randint(550,650),50,self.space)
+    def pendulum(self,OX,OY,m1X,m1Y,m2X,m2Y):
+        b0 = self.space.static_body
+        self.body = pymunk.Body(mass=1, moment=10)
+        self.body.position = (m1X, m1Y)
+        self.circle = pymunk.Circle(self.body, radius=20)
 
-        string5 = String(self.ball_5.body, (600, 250),self.space, "position")
-        string6 = String(self.ball_5.body, self.ball_6.body,self.space)
+        self.body2 = pymunk.Body(mass=1, moment=10)
+        self.body2.position = (m2X,m2Y)
+        self.circle2 = pymunk.Circle(self.body2, radius=20)
 
-        #stuff for double pendulum number 0 (soviet union)
-        self.ball_7 = Ball(random.randint(150,250),150,self.space)
-        self.ball_8 = Ball(random.randint(150,250),50,self.space)
+        self.joint = pymunk.constraints.PinJoint(b0, self.body, (OX, OY))
+        self.joint2 = pymunk.constraints.PinJoint(self.body2,self.body)
 
-        string1 = String(self.ball_7.body, (200, 250),self.space, "position")
-        string2 = String(self.ball_7.body, self.ball_8.body,self.space)
+        self.space.add(self.body, self.circle, self.joint,self.body2,self.joint2,self.circle2)
 
-        self.pendulum3Objects = [self.ball_5,self.ball_6,string5,string6]
+        self.pendulumObjects.append(self.body)
+        self.pendulumObjects.append(self.circle)
+        self.pendulumObjects.append(self.joint)
+        self.pendulumObjects.append(self.body2)
+        self.pendulumObjects.append(self.joint2)
+        self.pendulumObjects.append(self.circle2)
 
-        self.pendulumBalls = [self.ball_1, self.ball_2, self.ball_3, self.ball_4, self.ball_5, self.ball_6, self.ball_7, self.ball_8]
-        self.pendulumStrings = [self.string1, self.string2]
-        #self.pendulumLists = [self.pendulum3Objects]
-
-        
+        #self.pendulumObjects = [self.body, self.circle, self.joint,self.body2,self.joint2,self.circle2]
 
 
     def drawDroppers (self):
@@ -422,7 +422,6 @@ class BouncingBalls(object):
         self.active_shape.elasticity = .9
         self.active_shape.friction = 0.9
 
-
     def update_balls(self) -> None: 
         for ball in self.balls:
             if ball.body.position.y > 700:
@@ -430,7 +429,6 @@ class BouncingBalls(object):
                 for ball in balls_to_remove:
                     #self.space.remove(ball, ball.body)
                     self.balls.remove(ball)
-       
 
     def create_ball(self) -> None:
         mass = 10
@@ -446,8 +444,6 @@ class BouncingBalls(object):
         self.ballsToReset.append(self.circle)
         self.circle.collision_type = 1
         
-
-
     def caughtTheBall(self, space, arbiter, data):
         s1 = arbiter.shapes
         self.gameState = 4
@@ -478,9 +474,10 @@ class BouncingBalls(object):
             self.space.remove(line)
         for lines2 in self.dropperList:
             self.space.remove(lines2)
-        if self.walls:
+        if self.walls is not None:
             for wall in self.walls:
                 self.space.remove(wall)
+            self.walls.clear()
         if self.platformList:
             for platform in self.platformList:
                 self.space.remove(platform)
@@ -492,18 +489,12 @@ class BouncingBalls(object):
         if self.balls:
             for ball in self.balls:
                 self.space.remove(ball)
-                  
-        if self.pendulumBalls:
-            self.ball_1.removeballpendulum(self.space)
-            self.ball_2.removeballpendulum(self.space)
-            self.string1.removestringpendulum(self.space)
-            self.string2.removestringpendulum(self.space)
-            self.ball_1 = None
-            self.ball_2 = None
-            self.string1 = None
-            self.string2 = None
-            #for thing in self.pendulum3Objects:
-             #   self.space.remove(thing)
+            self.balls.clear()
+        if self.pendulumObjects:
+            for objects in self.pendulumObjects:
+                self.space.remove(objects)
+            self.pendulumObjects.clear()
+
 
     def clear_screen(self) -> None:
         background = pygame.image.load('background.png')
@@ -525,42 +516,6 @@ class Button(pygame.sprite.Sprite):
     def isClicking(self):
 
         mouse = pygame.mouse.get_pos()
-              
-def convert_coordinates(point):
-    return int(point[0]), int(600-point[1])
-
-class Ball():
-    def __init__(self, x, y, space):
-        self.body = pymunk.Body()
-        self.body.position = x,y
-        self.shape = pymunk.Circle(self.body, 10)
-        self.shape.density = 1
-        self.shape.elasticity = 1
-        space.add(self.body, self.shape)
-    
-    #def draw(self,screen):
-     #   pygame.draw.circle(screen, (255,0,0), convert_coordinates(self.body.position), 15)
-    def removeballpendulum(self,space):
-        #pymunk.Space.remove(self.shape)
-        pymunk.Space.remove(self.body)
-class String():
-    def __init__(self, body1, attachment, space, identifier="body"):
-        self.body1 = body1
-        if identifier == "body":
-            self.body2 = attachment
-        elif identifier == "position":
-            self.body2 = pymunk.Body(body_type=pymunk.Body.STATIC)
-            self.body2.position = attachment
-        self.joint = pymunk.PinJoint(self.body1, self.body2) 
-        space.add(self.joint)
-    def draw(self,screen):
-        pos1 = convert_coordinates(self.body1.position)
-        pos2 = convert_coordinates(self.body2.position)
-        #pygame.draw.line(screen, (0,0,0), pos1, pos2, 5)
-    def removestringpendulum(self,space):
-        pymunk.Space.remove(self.body1,self.body2)
-
-        
 
 if __name__ == "__main__":
     game = BouncingBalls()
