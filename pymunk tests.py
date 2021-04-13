@@ -31,6 +31,12 @@ class BouncingBalls(object):
         self.platformList = []
         self.spikesList = []
         self.walls = []
+        self.pendulum1Objects = []
+        self.pendulumLists = []
+        self.gears = []
+        self.pendulumBalls = []
+        
+        self.pendulumStrings = []
         
 
         
@@ -62,9 +68,7 @@ class BouncingBalls(object):
             self.spikesImage = pygame.image.load('spikes.png')
             self.wormholeImage = pygame.image.load('wormhole.png')
             self.wormholeImage2 = pygame.image.load('wormhole2.png')
-            self.wind = pygame.image.load('wind.png')
 
-            
 
             while self.running:
 
@@ -85,6 +89,7 @@ class BouncingBalls(object):
                 self.linePoint1Y = 200
                 self.linePoint2X = 150
                 self.linePoint2Y = 200
+
 
                 if self.gameState == 0:
 
@@ -153,9 +158,8 @@ class BouncingBalls(object):
                     self.wormholeRect2.move_ip(550,75)
                     #pygame.draw.rect(self.screen,(0,0,0),self.wormholeRect)
 
-                if self.gameState == 9:
+                #if self.gameState == 9:
                     
-                    pygame.display.flip()                        
                                     
                 if self.gameState == 4:
                                      
@@ -247,10 +251,6 @@ class BouncingBalls(object):
                     if self.backButton.collidepoint(pygame.mouse.get_pos()):
                         self.gameState = 0
              
-                #if self.gameState == 9:
-                    #for body in self.balls:
-                        #body.apply_impulse_at_local_point((-6000, 0))
-            
             elif event.type == pygame.KEYDOWN:
                 if self.gameState == 3 or self.gameState == 5 or self.gameState == 7 or self.gameState == 9:
                     if event.key == pygame.K_LEFT:
@@ -335,14 +335,40 @@ class BouncingBalls(object):
 
     def setUpLevel4(self):
         self.setUpLevel1()
-        #stuff for double pendulum
+        #stuff for double pendulum number 1 (over bin)
+        self.ball_1 = Ball(random.randint(750,850),150,self.space)
+        self.ball_2 = Ball(random.randint(750,850),50,self.space)
 
-        ball_1 = Ball(600,300,self.space)
-        ball_2 = Ball(600,250,self.space)
-
-        string1 = String(ball_1.body, (700, 350),self.space, "position")
-        string2 = String(ball_1.body, ball_2.body,self.space)
+        self.string1 = String(self.ball_1.body, (800, 250),self.space, "position")
+        self.string2 = String(self.ball_1.body, self.ball_2.body,self.space)
         
+        #stuff for double pendulm number 2 (in the left)
+        self.ball_3 = Ball(random.randint(350,450),150,self.space)
+        self.ball_4 = Ball(random.randint(350,450),50,self.space)
+
+        string3 = String(self.ball_3.body, (400, 250),self.space, "position")
+        string4 = String(self.ball_3.body, self.ball_4.body,self.space)
+
+        #stuff for double pendulm number 3 (in the midle top)
+        self.ball_5 = Ball(random.randint(550,650),150,self.space)
+        self.ball_6 = Ball(random.randint(550,650),50,self.space)
+
+        string5 = String(self.ball_5.body, (600, 250),self.space, "position")
+        string6 = String(self.ball_5.body, self.ball_6.body,self.space)
+
+        #stuff for double pendulum number 0 (soviet union)
+        self.ball_7 = Ball(random.randint(150,250),150,self.space)
+        self.ball_8 = Ball(random.randint(150,250),50,self.space)
+
+        string1 = String(self.ball_7.body, (200, 250),self.space, "position")
+        string2 = String(self.ball_7.body, self.ball_8.body,self.space)
+
+        self.pendulum3Objects = [self.ball_5,self.ball_6,string5,string6]
+
+        self.pendulumBalls = [self.ball_1, self.ball_2, self.ball_3, self.ball_4, self.ball_5, self.ball_6, self.ball_7, self.ball_8]
+        self.pendulumStrings = [self.string1, self.string2]
+        #self.pendulumLists = [self.pendulum3Objects]
+
         
 
 
@@ -364,8 +390,7 @@ class BouncingBalls(object):
     def mouseMotionChild (self):
         if self.active_shape is not None:
             self.active_shape.body.position = (self.mouse_x + self.offset_x - self.linePoint1X,self.mouse_y + self.offset_y - self.linePoint1Y)
-        
-        
+           
 
     def create_Platform (self) -> None:
         self.platformLine = pymunk.Segment(self.space.static_body, (self.linePoint1X, self.linePoint1Y), (self.linePoint2X, self.linePoint2Y), 7.0)
@@ -467,6 +492,18 @@ class BouncingBalls(object):
         if self.balls:
             for ball in self.balls:
                 self.space.remove(ball)
+                  
+        if self.pendulumBalls:
+            self.ball_1.removeballpendulum(self.space)
+            self.ball_2.removeballpendulum(self.space)
+            self.string1.removestringpendulum(self.space)
+            self.string2.removestringpendulum(self.space)
+            self.ball_1 = None
+            self.ball_2 = None
+            self.string1 = None
+            self.string2 = None
+            #for thing in self.pendulum3Objects:
+             #   self.space.remove(thing)
 
     def clear_screen(self) -> None:
         background = pygame.image.load('background.png')
@@ -474,9 +511,6 @@ class BouncingBalls(object):
     def draw_objects(self) -> None:
         self.space.debug_draw(self.draw_options)
         
-
-
-
 
 
 class Button(pygame.sprite.Sprite):
@@ -504,8 +538,11 @@ class Ball():
         self.shape.elasticity = 1
         space.add(self.body, self.shape)
     
-    def draw(self,screen):
-        pygame.draw.circle(screen, (255,0,0), convert_coordinates(self.body.position), 10)
+    #def draw(self,screen):
+     #   pygame.draw.circle(screen, (255,0,0), convert_coordinates(self.body.position), 15)
+    def removeballpendulum(self,space):
+        #pymunk.Space.remove(self.shape)
+        pymunk.Space.remove(self.body)
 class String():
     def __init__(self, body1, attachment, space, identifier="body"):
         self.body1 = body1
@@ -514,12 +551,14 @@ class String():
         elif identifier == "position":
             self.body2 = pymunk.Body(body_type=pymunk.Body.STATIC)
             self.body2.position = attachment
-        joint = pymunk.PinJoint(self.body1, self.body2) 
-        space.add(joint)
+        self.joint = pymunk.PinJoint(self.body1, self.body2) 
+        space.add(self.joint)
     def draw(self,screen):
         pos1 = convert_coordinates(self.body1.position)
         pos2 = convert_coordinates(self.body2.position)
-        pygame.draw.line(screen, (0,0,0), pos1, pos2, 2)
+        #pygame.draw.line(screen, (0,0,0), pos1, pos2, 5)
+    def removestringpendulum(self,space):
+        pymunk.Space.remove(self.body1,self.body2)
 
         
 
