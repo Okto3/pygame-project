@@ -258,7 +258,7 @@ class BouncingBalls(object):
                         self.screen.blit(self.normalTime, (25,500))
                         self.dilatedtime = self.myfont.render('Dilated Time: ' + str(round(timeDilation, 2)) + 's',False,(0,0,0))
                         self.screen.blit(self.dilatedtime, (25,550))
-                    print(self.timeOfDrop)               
+                    #print(self.timeOfDrop)               
                 if self.gameState == 4:                 
                     self.screen.blit(self.winImage,(162,95))
 
@@ -378,7 +378,38 @@ class BouncingBalls(object):
                             self.active_shape.rotation -= 0.2
                             self.rotatePlatform() 
 
-                                                  
+                    if event.key == pygame.K_w:
+                        if self.active_shape:
+                            self.space.remove(self.active_shape)
+                            self.platformList.remove(self.active_shape)
+                            if self.active_shape is not None:
+                                self.active_shape.body.position = (self.active_shape.body.position.x, self.active_shape.body.position.y-10)
+                            self.space.add(self.active_shape)
+                            self.platformList.append(self.active_shape)  
+                    if event.key == pygame.K_s:
+                        if self.active_shape:
+                            self.space.remove(self.active_shape)
+                            self.platformList.remove(self.active_shape)
+                            if self.active_shape is not None:
+                                self.active_shape.body.position = (self.active_shape.body.position.x, self.active_shape.body.position.y+10)
+                            self.space.add(self.active_shape)
+                            self.platformList.append(self.active_shape)       
+                    if event.key == pygame.K_d:
+                        if self.active_shape:
+                            self.space.remove(self.active_shape)
+                            self.platformList.remove(self.active_shape)
+                            if self.active_shape is not None:
+                                self.active_shape.body.position = (self.active_shape.body.position.x + 10, self.active_shape.body.position.y)
+                            self.space.add(self.active_shape)
+                            self.platformList.append(self.active_shape)  
+                    if event.key == pygame.K_a:
+                        if self.active_shape:
+                            self.space.remove(self.active_shape)
+                            self.platformList.remove(self.active_shape)
+                            if self.active_shape is not None:
+                                self.active_shape.body.position = (self.active_shape.body.position.x - 10, self.active_shape.body.position.y)
+                            self.space.add(self.active_shape)
+                            self.platformList.append(self.active_shape)                  
             
             elif event.type == pygame.MOUSEMOTION:
                 if self.gameState == 3 or self.gameState == 5 or self.gameState == 7 or self.gameState == 9 or self.gameState==11:
@@ -578,9 +609,9 @@ class BouncingBalls(object):
         self.initialLevelTime = self.timesList[0]
         self.initialLevelTime /= 1000
         
-        print(self.timeOfDrop)
-        print(self.timeOfFinish)
-        print(self.levelTime)
+        #print(self.timeOfDrop)
+        #print(self.timeOfFinish)
+        #print(self.levelTime)
 
         if self.gameState == 3:
             if self.initialLevelTime < float(self.highScores[0]):
