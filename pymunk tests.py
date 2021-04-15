@@ -6,6 +6,7 @@ from pymunk.pygame_util import *
 from pymunk.vec2d import Vec2d
 from pygame.locals import *
 import math
+from datetime import datetime
 
 
 
@@ -13,7 +14,7 @@ class BouncingBalls(object):
     def __init__(self) -> None:
         self.space = pymunk.Space() 
         self.space.gravity = (0.0, 900.0)
-        self.dt = 1.0 / 60.0 
+        #self.dt = 1.0 / 60.0 
         self.physics_steps_per_frame = 1
 
         pygame.init()                                       
@@ -31,7 +32,18 @@ class BouncingBalls(object):
         self.platformList = []
         self.spikesList = []
         self.walls = []
-        self.pendulumObjects = []        
+        self.pendulumObjects = []  
+        self.timesList = []      
+        self.highScores = []
+
+        pygame.font.init()
+        self.myfont = pygame.font.SysFont('Arial Black', 40)
+        self.resultFont = pygame.font.SysFont('Arial Black',30)
+
+        with open("highscores.txt", 'r') as file:
+            for line in file:
+                line = line.strip()
+                self.highScores.append(line+'\n')
         
 
         
@@ -53,25 +65,44 @@ class BouncingBalls(object):
             self.newPlatformImage = pygame.image.load('newPlatform.png')
             self.binImage = pygame.image.load('bin.png')
             self.ballDropImage = pygame.image.load('ballDrop.png')
+            self.instructions = pygame.image.load('instructions.png')
 
             self.star0Image = pygame.image.load('0stars.png')
             self.star1Image = pygame.image.load('1stars.png')
             self.stars2Image = pygame.image.load('2stars.png')
             self.stars3Image = pygame.image.load('3stars.png')
             self.winImage = pygame.image.load('Win.png')
-            #self.redoImage = pygame.image.load('redo.png')
             self.spikesImage = pygame.image.load('spikes.png')
             self.wormholeImage = pygame.image.load('wormhole.png')
             self.wormholeImage2 = pygame.image.load('wormhole2.png')
+            self.doubleGravityImage = pygame.image.load('doubleBackground.png')
 
+            #variables for timers
+            self.timeOfDrop = 0
+            self.timeOfFinish = 0
+            self.levelTime = 0
+            self.initialLevelTime = 0
+
+            mass = 10
+            radius = 25
+            inertia = pymunk.moment_for_circle(mass, 0, radius, (0, 0))
+            self.body = pymunk.Body(mass, inertia)
+            self.body.position = 80, 0
+            self.circle = pymunk.Circle(self.body, radius, (0, 0))
+            self.circle.elasticity = .9
+            self.circle.friction = 0.9
+            lastTime = datetime.now()
+            dilatedTime = 0
+            
 
             while self.running:
-
-                for x in range(self.physics_steps_per_frame):
-                    self.space.step(self.dt)
+                
+                self.space.step(1.0/60.0)
                 self.process_events()
                 self.update_balls()
                 self.clear_screen()
+                if self.gameState == 9:
+                    self.screen.blit(self.doubleGravityImage,(0,0))
                 self.draw_objects()
 
                 self.clock.tick(50)
@@ -125,7 +156,23 @@ class BouncingBalls(object):
                     self.backButton = self.backImage.get_rect()
                     self.backButton.move_ip(900,500)
 
+                    self.level1Time = self.resultFont.render(str(self.highScores[0].rstrip('\n')) + 's',False,(0,0,0))
+                    self.screen.blit(self.level1Time, (195,420))
+                    self.level2Time = self.resultFont.render(str(self.highScores[1].rstrip('\n')) + 's',False,(0,0,0))
+                    self.screen.blit(self.level2Time, (325,420))
+                    self.level3Time = self.resultFont.render(str(self.highScores[2].rstrip('\n')) + 's',False,(0,0,0))
+                    self.screen.blit(self.level3Time, (460,420))
+                    self.level4Time = self.resultFont.render(str(self.highScores[3].rstrip('\n')) + 's',False,(0,0,0))
+                    self.screen.blit(self.level4Time, (590,420))
+                    self.level5Time = self.resultFont.render(str(self.highScores[4].rstrip('\n')) + 's',False,(0,0,0))
+                    self.screen.blit(self.level5Time, (720,420))
 
+                if self.gameState == 2:
+                    self.screen.blit(self.instructions, (0,0))
+                    self.screen.blit(self.backImage, (900,0))
+                    self.backButton = self.backImage.get_rect()
+                    self.backButton.move_ip(900,0)
+                    
                 if self.gameState == 3 or self.gameState == 5 or self.gameState == 7 or self.gameState == 9 or self.gameState == 11:
 
                     self.screen.blit(self.newPlatformImage, (950,25))
@@ -143,6 +190,10 @@ class BouncingBalls(object):
                     self.screen.blit(self.ballDropImage,(950,175))
                     self.ballDropButton = self.backImage.get_rect()
                     self.ballDropButton.move_ip(950,175)
+
+                    #self.levelTime = self.timeOfFinish-self.timeOfDrop
+                    #print(self.timeOfFinish)
+                    
                 
                 if self.gameState == 7:
                     self.screen.blit(self.wormholeImage, (300,200))
@@ -154,27 +205,81 @@ class BouncingBalls(object):
                     self.wormholeRect2.move_ip(550,75)
                     #pygame.draw.rect(self.screen,(0,0,0),self.wormholeRect)
 
-                #if self.gameState == 9:
-                    
-                                    
-                if self.gameState == 4:
-                                     
-                    self.screen.blit(self.winImage,(200,100))
+                if self.gameState == 9:
+                    for ball in self.balls:
+                        if ball.body.position.x > 512:
+                            self.space.gravity = (0,-900)
+                        else:
+                            self.space.gravity = (0,900)
+                        
+                if self.gameState == 11:
+                    body = self.body
+                    currentTime = 0
+                    checkPosition = 10
+                    newPlanetX = 0
+                    newPlanetY = 0
+                    oldPlanetX = body.position.x
+                    oldPlanetY = body.position.y
+                    planetVelocity = (0)
+
+                    self.body.apply_impulse_at_local_point((-50,20),(0,0))
+
+                    distanceToBlackHole = math.sqrt((500 - body.position.x)**2 + (300 - body.position.y)**2)
+
+                    dx = 500 - body.position.x
+                    dy = 300 - body.position.y
+                    v1 = pymunk.Vec2d(dx,dy)
+                    nv = v1.normalized()
+                    nv = nv.scale_to_length(100000/(v1.length**2)+5000)
+                    body.velocity *= 0.98
+
+                    self.space.gravity = (nv)
+
+                    if pygame.time.get_ticks() > checkPosition:
+                        newPlanetX = body.position.x
+                        newPlanetY = body.position.y
+                        planetVelocity = math.sqrt((newPlanetX-oldPlanetX)**2 + (newPlanetY-oldPlanetY)**2)
+                        newPlanetX = oldPlanetX
+                        newPlanetY = oldPlanetY
+                        checkPosition += 10
+                        
+                    normalTime = pygame.time.get_ticks()/1000 - self.timeOfDrop/1000
+                    #print('normal time to stationary observer:')
+                    #print(normalTime)
+                    dilationFactorGravity = (1-(2*(6.674e-11)*(1.7901e31))/(v1.length*1000*((2.9979e8)**2)))**0.5        #gravitational constant: 6.67e-11, mass of black hole: 1.7901e+31kg, 
+                    timeDilation = dilationFactorGravity * normalTime
+                    #print('time relative to traveling observer:')
+                    #print(timeDilation)
+                    #dilatedTime += (datetime.utcnow() - lastTime).total_seconds() * (v1.length/480)
+                    #lastTime = datetime.utcnow()
+                    #print(datetime.utcnow())
+                    if self.balls:
+                        self.normalTime = self.myfont.render('Normal Time: ' + str(round(normalTime, 2)) + 's',False,(0,0,0))
+                        self.screen.blit(self.normalTime, (25,500))
+                        self.dilatedtime = self.myfont.render('Dilated Time: ' + str(round(timeDilation, 2)) + 's',False,(0,0,0))
+                        self.screen.blit(self.dilatedtime, (25,550))
+                    print(self.timeOfDrop)               
+                if self.gameState == 4:                 
+                    self.screen.blit(self.winImage,(162,95))
 
                     if len(self.platformList) < 3:
-                        self.screen.blit(self.stars3Image,(450,210))
+                        self.screen.blit(self.stars3Image,(400,205))
                     if len(self.platformList) > 2 and len(self.platformList) < 5:
-                        self.screen.blit(self.stars2Image,(450,210))
+                        self.screen.blit(self.stars2Image,(400,205))
                     if len(self.platformList) > 4:
-                        self.screen.blit(self.star1Image,(450,210))
+                        self.screen.blit(self.star1Image,(400,205))
 
-                    self.screen.blit(self.backImage, (300,300))
+                    self.screen.blit(self.backImage, (740,280))
                     self.backButton = self.backImage.get_rect()
-                    self.backButton.move_ip(300,300)
+                    self.backButton.move_ip(740,280)
 
+                    self.textSurface = self.myfont.render(str(self.initialLevelTime) + ' s',False,(0,0,0))
+                    self.screen.blit(self.textSurface, (500,280))
+                    
                     pygame.display.flip()
 
                 pygame.display.flip()
+                
 
     def process_events(self) -> None:
         for event in pygame.event.get():
@@ -184,10 +289,11 @@ class BouncingBalls(object):
                 self.running = False
             
             elif event.type == pygame.MOUSEBUTTONDOWN:
-
+                
                 if self.gameState == 4:
                     if self.backButton.collidepoint(pygame.mouse.get_pos()):
                         self.clearLevel()
+                        self.timesList.clear()
                         self.gameState = 1
                         continue
                         
@@ -203,7 +309,7 @@ class BouncingBalls(object):
                         self.gameState = 1
                         self.platformList.clear()
 
-                    if not self.balls:
+                    if not self.balls or self.gameState == 9:
                         if self.newPlatformButton.collidepoint(pygame.mouse.get_pos()):
                             self.create_Platform()
                         
@@ -211,7 +317,9 @@ class BouncingBalls(object):
                             if self.active_shape is not None:
                                 self.removePlatform()
                         elif self.ballDropButton.collidepoint(pygame.mouse.get_pos()):
-                            self.create_ball()                          
+                            self.create_ball()  
+                            self.timeOfDrop = pygame.time.get_ticks() 
+                                                   
 
                         self.mouse_x, self.mouse_y = event.pos
                         nearestShape = self.space.point_query_nearest(event.pos, float("inf"), pymunk.ShapeFilter())
@@ -228,10 +336,12 @@ class BouncingBalls(object):
                 elif self.gameState == 0:
                     if self.startButton.collidepoint(pygame.mouse.get_pos()):
                         self.gameState = 1   
-                    #if self.settingsButton.collidepoint(pygame.mouse.get_pos()):
+                    if self.settingsButton.collidepoint(pygame.mouse.get_pos()):
+                        self.gameState = 2
                     if self.quitButton.collidepoint(pygame.mouse.get_pos()):
                         self.running = False
 
+                
                 elif self.gameState == 1:
                     if self.level1Button.collidepoint(pygame.mouse.get_pos()):
                         self.gameState = 3
@@ -251,9 +361,13 @@ class BouncingBalls(object):
                     
                     if self.backButton.collidepoint(pygame.mouse.get_pos()):
                         self.gameState = 0
+                
+                elif self.gameState == 2:
+                    if self.backButton.collidepoint(pygame.mouse.get_pos()):
+                        self.gameState = 0
              
             elif event.type == pygame.KEYDOWN:
-                if self.gameState == 3 or self.gameState == 5 or self.gameState == 7 or self.gameState == 9:
+                if self.gameState == 3 or self.gameState == 5 or self.gameState == 7 or self.gameState == 9 or self.gameState == 11:
                     if event.key == pygame.K_LEFT:
                         if self.active_shape:
                             self.active_shape.rotation += 0.2
@@ -262,22 +376,21 @@ class BouncingBalls(object):
                     if event.key == pygame.K_RIGHT:
                         if self.active_shape:
                             self.active_shape.rotation -= 0.2
-                            self.rotatePlatform()
+                            self.rotatePlatform() 
 
-                    if event.key == pygame.K_n:
-                        self.gameState = 4
-                                                        
+                                                  
             
             elif event.type == pygame.MOUSEMOTION:
-                if self.gameState == 3 or self.gameState == 5 or self.gameState == 7 or self.gameState == 9:
+                if self.gameState == 3 or self.gameState == 5 or self.gameState == 7 or self.gameState == 9 or self.gameState==11:
                     if self.dragging == True:
                         self.mouseMotion(event)    
             elif event.type == pygame.MOUSEBUTTONUP:
-                if self.gameState == 3 or self.gameState == 5 or self.gameState == 7 or self.gameState == 9:
+                if self.gameState == 3 or self.gameState == 5 or self.gameState == 7 or self.gameState == 9 or self.gameState == 11:
                     self.dragging = False
 
              
     def setUpLevel1 (self):
+        self.space.gravity = (0,900)
         self.mouse_x = 75
         self.mouse_y = 200
         self.mouseMotionChild()
@@ -292,7 +405,7 @@ class BouncingBalls(object):
             lines.elasticity = .9
             lines.friction = 10
             lines.color = pygame.Color(0,0,0)
-
+        
         self.drawDroppers()
 
         self.space.add(self.binLeft,self.binRight,self.binBottom)
@@ -301,6 +414,7 @@ class BouncingBalls(object):
         collInfo.begin = self.caughtTheBall
     
     def setUpLevel2(self):
+        self.space.gravity = (0,900)
         self.setUpLevel1()
 
         self.spike1 = pymunk.Segment(self.space.static_body,(300,300),(400,400),7.0)
@@ -317,6 +431,7 @@ class BouncingBalls(object):
         collinfo.begin = self.removeBall
 
     def setUpLevel3(self):
+        self.space.gravity = (0,900)
         self.setUpLevel1()
 
         self.wall1 = pymunk.Segment(self.space.static_body,(500,50),(500,700),5.0)
@@ -335,42 +450,37 @@ class BouncingBalls(object):
         collInfo.begin = self.teleportTheBall
 
     def setUpLevel4(self):
-        self.setUpLevel1()
-        self.pendulum(200, 250, random.randint(150, 250), 150, random.randint(150, 250), 50)
-        self.pendulum(400, 250, random.randint(350, 450), 150, random.randint(350, 450), 50)
-        self.pendulum(600, 250, random.randint(550, 650), 150, random.randint(550, 650), 50)
-        self.pendulum(800, 250, random.randint(750, 850), 150, random.randint(750, 850), 50)
+        self.space.gravity = (0,900)
+        self.mouse_x = 75
+        self.mouse_y = 200
+        self.mouseMotionChild()
+        
+        self.binLeftGravity = pymunk.Segment(self.space.static_body,(790,100),(800,0),2.0)
+        self.binRightGravity = pymunk.Segment(self.space.static_body,(870,100),(860,0),2.0)
+        self.binBottomGravity = pymunk.Segment(self.space.static_body,(800,2),(860,2),2.0)
+        self.binBottomGravity.collision_type = 2      
 
-        attachment = pymunk.Segment(self.space.static_body,(150,250),(250,250),4)
-        self.space.add(attachment)
+        self.binList = [self.binLeftGravity, self.binRightGravity,self.binBottomGravity]
+        for lines in self.binList:
+            lines.elasticity = .9
+            lines.friction = 10
+            lines.color = pygame.Color(200,200,0)
+        
+
+        self.drawDroppers()
+
+        self.space.add(self.binLeftGravity,self.binRightGravity,self.binBottomGravity)
+
+        collInfo = self.space.add_collision_handler(1, 2)
+        collInfo.begin = self.caughtTheBall
 
     def setUpLevel5(self):
         self.setUpLevel1()
 
-    def pendulum(self,OX,OY,m1X,m1Y,m2X,m2Y):
-        b0 = self.space.static_body
-        self.body = pymunk.Body(mass=1, moment=10)
-        self.body.position = (m1X, m1Y)
-        self.circle = pymunk.Circle(self.body, radius=20)
-
-        self.body2 = pymunk.Body(mass=1, moment=10)
-        self.body2.position = (m2X,m2Y)
-        self.circle2 = pymunk.Circle(self.body2, radius=20)
-
-        self.joint = pymunk.constraints.PinJoint(b0, self.body, (OX, OY))
-        self.joint2 = pymunk.constraints.PinJoint(self.body2,self.body)
-
-        self.space.add(self.body, self.circle, self.joint,self.body2,self.joint2,self.circle2)
-
-        self.pendulumObjects.append(self.body)
-        self.pendulumObjects.append(self.circle)
-        self.pendulumObjects.append(self.joint)
-        self.pendulumObjects.append(self.body2)
-        self.pendulumObjects.append(self.joint2)
-        self.pendulumObjects.append(self.circle2)
-
-        #self.pendulumObjects = [self.body, self.circle, self.joint,self.body2,self.joint2,self.circle2]
-
+        #self.space.gravity = (0, 0)
+        self.blackHole = pymunk.Circle(self.space.static_body,5,(500,300))
+        self.space.add(self.blackHole)
+        self.blackHole.color = pygame.Color(0,0,0)
 
     def drawDroppers (self):
         self.dropperLeft = pymunk.Segment(self.space.static_body,(50,0),(50,50),2.0)
@@ -396,7 +506,11 @@ class BouncingBalls(object):
         self.platformLine = pymunk.Segment(self.space.static_body, (self.linePoint1X, self.linePoint1Y), (self.linePoint2X, self.linePoint2Y), 7.0)
         self.platformLine.elasticity = .9
         self.platformLine.friction = 0.9
-        self.platformLine.color = pygame.Color(0,0,0)
+        if self.gameState == 9:
+            self.platformLine.color = pygame.Color(255,255,0)
+        if self.gameState != 9:
+            self.platformLine.color = pygame.Color(0,0,0)
+        
         self.platformLine.rotation = math.pi/2 # I MADE UP THIS ROTATION VARIABLE AND ASSIGNED IT TO PLATFORM LINE.
         self.space.add(self.platformLine)
         self.platformList.append(self.platformLine)
@@ -416,7 +530,11 @@ class BouncingBalls(object):
         self.platformList.remove(self.active_shape)
         self.active_shape = pymunk.Segment(self.space.static_body, (xa, ya), (xb, yb), 7.0)
         self.active_shape.rotation = r
-        self.active_shape.color = pygame.Color(0,0,0) 
+        if self.gameState == 9:
+            self.active_shape.color = pygame.Color(255,255,0)
+        if self.gameState != 9:
+            self.active_shape.color = pygame.Color(0,0,0)
+        
         self.space.add(self.active_shape)
         self.platformList.append(self.active_shape)
         self.active_shape.elasticity = .9
@@ -427,24 +545,74 @@ class BouncingBalls(object):
             if ball.body.position.y > 700:
                 balls_to_remove = [ball for ball in self.balls if ball.body.position.y > 700]
                 for ball in balls_to_remove:
-                    #self.space.remove(ball, ball.body)
                     self.balls.remove(ball)
-
+                    self.space.remove(ball)
+            if ball.body.position.x > 1024:
+                balls_to_remove = [ball for ball in self.balls if ball.body.position.x > 1024]
+                for ball in balls_to_remove:
+                    self.balls.remove(ball)
+                    self.space.remove(ball)
+            if self.gameState == 11:              
+                if ball.body.position.x > 470 and ball.body.position.x < 530 and ball.body.position.y > 270 and ball.body.position.y < 330:
+                    self.balls.remove(ball)
+                    self.space.remove(ball)
     def create_ball(self) -> None:
         mass = 10
         radius = 25
         inertia = pymunk.moment_for_circle(mass, 0, radius, (0, 0))
-        body = pymunk.Body(mass, inertia)
-        body.position = 80, -50
-        self.circle = pymunk.Circle(body, radius, (0, 0))
+        self.body = pymunk.Body(mass, inertia)
+        self.body.position = 80, -25
+        self.circle = pymunk.Circle(self.body, radius, (0, 0))
         self.circle.elasticity = .9
         self.circle.friction = 0.9
-        self.space.add(body, self.circle)
+        self.space.add(self.body, self.circle)
         self.balls.append(self.circle)
         self.ballsToReset.append(self.circle)
         self.circle.collision_type = 1
         
+        
     def caughtTheBall(self, space, arbiter, data):
+        self.timeOfFinish = pygame.time.get_ticks()
+        self.levelTime = self.timeOfFinish-self.timeOfDrop
+        self.timesList.append(self.levelTime)
+        self.initialLevelTime = self.timesList[0]
+        self.initialLevelTime /= 1000
+        
+        print(self.timeOfDrop)
+        print(self.timeOfFinish)
+        print(self.levelTime)
+
+        if self.gameState == 3:
+            if self.initialLevelTime < float(self.highScores[0]):
+                self.highScores[0] = str(self.initialLevelTime)+'\n'
+                with open('highscores.txt','w') as file:
+                    file.writelines( self.highScores )
+        
+        if self.gameState == 5:
+            if self.initialLevelTime < float(self.highScores[1]):
+                self.highScores[1] = str(self.initialLevelTime)+'\n'
+                with open('highscores.txt','w') as file:
+                    file.writelines( self.highScores )
+        
+        if self.gameState == 7:
+            if self.initialLevelTime < float(self.highScores[2]):
+                self.highScores[2] = str(self.initialLevelTime)+'\n'
+                with open('highscores.txt','w') as file:
+                    file.writelines( self.highScores )
+        
+        if self.gameState == 9:
+            self.space.gravity = (0,900)
+            if self.initialLevelTime < float(self.highScores[3]):
+                self.highScores[3] = str(self.initialLevelTime)+'\n'
+                with open('highscores.txt','w') as file:
+                    file.writelines( self.highScores )
+
+        if self.gameState == 11:
+            if self.initialLevelTime < float(self.highScores[4]):
+                self.highScores[4] = str(self.initialLevelTime)+'\n'
+                with open('highscores.txt','w') as file:
+                    file.writelines( self.highScores )
+
         s1 = arbiter.shapes
         self.gameState = 4
         return True
@@ -494,6 +662,8 @@ class BouncingBalls(object):
             for objects in self.pendulumObjects:
                 self.space.remove(objects)
             self.pendulumObjects.clear()
+        if self.gameState == 11:
+            self.space.remove(self.blackHole)
 
 
     def clear_screen(self) -> None:
